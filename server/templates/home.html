@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% block content %}
+    {% for receipt in receipts %}
+
+    <article class="content-section py-3 px-4 mb-4">
+        <div class="d-flex align-items-start gap-4">
+            <div class="flex-grow-1">
+                <div class="article-metadata mb-2">
+                    <h2>
+                        <a class="article-title" href="{{ url_for("receipt_page", receipt_id=receipt.id)}}">{{ receipt.retailer }}</a>
+                    </h2>
+                </div>
+
+                {% for item in receipt['items'] %}
+                    <p> {{ item.description }} </p>
+                {% endfor %}
+            </div>
+        </div>
+    </article>
+    {% endfor %}
+{% endblock content %}
