@@ -75,7 +75,18 @@
               <a class="nav-link active"
                  aria-current="page"
                  href="{{ url_for("home") }}">Home</a>
-            </div>
+
+          <button type="button"
+                      class="btn btn-outline-danger"
+                      data-bs-toggle="modal"
+                      data-bs-target="#addModal">+</button>
+              </div>
+          </div>
+
+
+
+          
+          
             <!-- Navbar Right Side -->
             <div class="navbar-nav">
               <a class="btn btn-outline-light mb-2 mb-md-0 me-md-2" href="#">Login</a>
@@ -126,15 +137,37 @@
           </div>
         </aside>
       </div>
+      
     </main>
 
     <footer class="mt-auto py-3 bg-body-tertiary border-top">
       <div class="container text-center">
         <p class="text-body-secondary mb-0">
-          © <span id="year"></span> Corey Schafer
+          © <span id="year"></span> Quinlin Fournier
         </p>
       </div>
     </footer>
+
+    <div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <!--  -->
+                <div class="modal-header">
+                  <h5 class="modal-title" id="addModalLabel">Add Receipt</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <form action="/upload" method="post" enctype="multipart/form-data">
+                    <input type="file" name="receipt" required="true">
+                    <!-- can add cature="enviroment" for cell phones -->
+                    <button type="submit">Upload</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+    
 
     <!-- Set the current year in the footer -->
     <script>document.getElementById('year').textContent = new Date().getFullYear();</script>

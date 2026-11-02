@@ -1,5 +1,5 @@
 
-from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi import Depends, FastAPI, UploadFile, File, HTTPException, Request, status 
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -32,6 +32,10 @@ def home(request: Request, db: Annotated[Session, Depends(get_db)]):
     result = db.execute(select(models.Receipt))
     receipts = result.scalars().all()
     return templates.TemplateResponse(request, "home.html", {"receipts": receipts, "title": "Home"})
+
+@app.post("/upload")
+def upload_receipt(request: Request, db:Annotated[Session, Depends(get_db)], receipt: UploadFile = File(...)):
+    pass
     
 
 @app.get("/receipts/{receipt_id}", include_in_schema=False)
@@ -103,6 +107,7 @@ def get_receipt(receipt_id: int, db: Annotated[Session, Depends(get_db)]):
         return receipt
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Receipt no found")
 
+
 @app.exception_handler(StarletteHTTPException)
 def general_http_exception_handler(request: Request, exception: StarletteHTTPException):
     message = (
@@ -128,6 +133,11 @@ def general_http_exception_handler(request: Request, exception: StarletteHTTPExc
     )
 
 @app.exception_handler(RequestValidationError)
+async def show_422(request, exc):
+    print(exc.errors())
+    return JSONResponse({"detail": exc.errors()}, status_code=422)
+
+@app.exception_handler(RequestValidationError)
 def validation_exception_handler(request: Request, exception: RequestValidationError):
     if request.url.path.startswith("/api"):
         return JSONResponse(
@@ -144,3 +154,5 @@ def validation_exception_handler(request: Request, exception: RequestValidationE
         },
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
     )
+
+
