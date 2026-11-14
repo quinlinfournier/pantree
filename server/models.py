@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, date
+from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
@@ -18,8 +19,8 @@ class User(Base):
         nullable=True,
         default=None,
     )
-
-    receipts: Mapped[list[Receipt]] = relationship(back_populates="author")
+    # author: Mapped[str] = mapped_column(String, nullable=True)
+    # receipts: Mapped[list[Receipt]] = relationship(back_populates="author")
 
     @property
     def image_path(self) -> str:
@@ -32,16 +33,19 @@ class Receipt(Base):
     __tablename__ = "receipts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    title: Mapped[str] = mapped_column(String(100), nullable=False)
-    content: Mapped[str] = mapped_column(Text, nullable=False)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey(User.id),
-        nullable=False,
-        index=True,
-    )
-    date_posted: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(UTC),
-    )
+    retailer: Mapped[str] = mapped_column(String, unique=False, nullable=True)
+    purchase_date: Mapped[date | None] = mapped_column(Date, unique=False, nullable=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey(User.id), nullable=True, index=True)
+    currency: Mapped[str] = mapped_column(String, unique=False)
+    total: Mapped[Decimal] = mapped_column(Numeric(10, 2))
 
-    author: Mapped[User] = relationship(back_populates="receipts")
+    items: Mapped[list[ReceiptItem]] = relationship(back_populates="receipt", cascade="all, delete-orphan")
+
+class ReceiptItem(Base):
+    __tablename__ = "receipt_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    receipt_id: Mapped[int] = mapped_column(ForeignKey("receipts.id"), nullable=False, index=True)
+    description: Mapped[str] = mapped_column(String(200), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    receipt: Mapped[Receipt] = relationship(back_populates="items")

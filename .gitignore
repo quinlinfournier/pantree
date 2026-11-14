@@ -1,5 +1,6 @@
 server/.venv
 client_test/.venv
+media/
 
 *.json
 *.db
