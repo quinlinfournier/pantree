@@ -25,12 +25,14 @@ class ReceiptItemBase(BaseModel):
 class UserCreate(UserBase):
     pass
 
+class ReceiptItemCreate(ReceiptItemBase):
+    pass
+
+
 class ReceiptCreate(ReceiptBase):
     user_id: int | None = None
     items: list[ReceiptItemCreate]
 
-class ReceiptItemCreate(ReceiptItemBase):
-    pass
 
 # Response
 
@@ -48,10 +50,10 @@ class ReceiptResponse(ReceiptBase):
     retailer: str
     purchase_date: date | None = None
     currency: str
-    total: int
+    total: Decimal
 
     items: list[ReceiptItemResponse]
 
-class ReceiptItemResponse(ReceiptBase):
+class ReceiptItemResponse(ReceiptItemBase):
     model_config = ConfigDict(from_attributes=True)
     id: int

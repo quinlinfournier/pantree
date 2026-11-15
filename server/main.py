@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 import models
 from database import Base, engine, get_db
 
+from ocr import ocr 
+
 from schemas import ReceiptResponse, ReceiptCreate, UserCreate, UserResponse, ReceiptItemCreate
 
 from typing import Annotated
@@ -40,21 +42,7 @@ def home(request: Request, db: Annotated[Session, Depends(get_db)]):
 
 @app.post("/upload")
 def upload_receipt(request: Request, db:Annotated[Session, Depends(get_db)], receipt_image: UploadFile = File(...)):
-    receiptOcrEndPoint = 'https://ocr.asprise.com/api/v1/receipt'
-    content = receipt_image.file.read()
-    filename = process_receipt_image(content)
-    file_bytes = (RECEIPT_PIC_DIR / filename).read_bytes()
-    r = requests.post(receiptOcrEndPoint, data={ \
-        'api_key': 'TEST',
-        'recognizer': 'auto',
-        'ref_no': 'ocr_python_123',
-        },
-        files={
-          "file": (filename, file_bytes, "image/jpeg")
-        },
-        )
-    with open("receipt.json", "w", encoding="utf-8") as file:
-        json.dump(r.json(), file, indent=4)
+    r = ocr(request, receipt_image )
 
     raw = json.load(open("receipt.json", encoding="utf-8"))
     src = raw["receipts"][0]
@@ -69,7 +57,7 @@ def upload_receipt(request: Request, db:Annotated[Session, Depends(get_db)], rec
 
     json.dump(new, open("pantree_receipt.json", "w", encoding="utf-8"), indent=4)
 
-    src = r.json()["receipts"][0]
+    # src = r.json()["receipts"][0]
 
     data = ReceiptCreate(retailer=src.get("merchant_name"), currency=src.get("currency"), total=src.get("total"), purchase_data=src.get("date"), items=[ReceiptItemCreate(description=i["description"], amount=i["amount"]) for i in src.get("items", [])])
     receipt = save_receipt(db, data)
@@ -93,12 +81,13 @@ def receipt_page(request: Request ,receipt_id: int, db: Annotated[Session, Depen
     results = db.execute(select(models.Receipt).where(models.Receipt.id == receipt_id))
     receipt = results.scalars().first()
     if receipt:
-        title = receipt.title[:50]
+        title = receipt.retailer[:50]
         return templates.TemplateResponse(request, "receipt.html", {"receipt": receipt, "title": title})
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Receipt not found")
 
+# TODO: Needs to be finished right now doesnt return anything
 
-@app.post("api/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED,)
+@app.post("/api/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED,)
 def create_user(user: UserCreate, db: Annotated[Session, Depends(get_db)]):
     result = db.execute(select(models.User).where(models.User.username == user.username))
     existing_user = result.scalars().first()
@@ -137,7 +126,7 @@ def get_receipts(db: Annotated[Session, Depends(get_db)]):
     receipts = result.scalars().all()
     return receipts
 
-@app.post("api/receipts", response_model=ReceiptResponse, status_code=status.HTTP_201_CREATED,)
+@app.post("/api/receipts", response_model=ReceiptResponse, status_code=status.HTTP_201_CREATED,)
 def create_receipt(data: ReceiptCreate, db: Annotated[Session, Depends(get_db)]) -> models.Receipt:
 
     receipt = models.Receipt(**data.model_dump(exclude=["items"]))
@@ -147,15 +136,6 @@ def create_receipt(data: ReceiptCreate, db: Annotated[Session, Depends(get_db)])
     db.commit()
     db.refresh(receipt)
     return receipt
-
-    # with open("receipt.json", "r", encoding="utf-8") as file:
-    #     json.dump(r.json(), file, indent=4)
-    # r = json.load(open("receipt.json", encoding="utf-8"))
-    # result = db.execute(select(models.User).where(models.User.id == receipt.user_id))
-    # user = result.scalars().first()
-    # if not user:
-    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    # new_receipt = models.Receipt(title=r.title, description=receipt.description, user_id=receipt.user_id)
 
 
 @app.get("/api/receipts/{receipt_id}", response_model=ReceiptResponse)
