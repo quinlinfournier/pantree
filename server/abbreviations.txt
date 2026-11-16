@@ -1,0 +1,10 @@
+ABBR=Expansion
+KS=Kirkland
+SPIN=Spinach
+RAV=Ravioli
+ORG=Organic
+CHOC=Chocolate
+ALM=Almond
+CHED=Chedder
+BF=Black Forest
+

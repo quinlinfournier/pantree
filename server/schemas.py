@@ -43,6 +43,10 @@ class UserResponse(UserBase):
     image_file: str | None
     image_path: str 
 
+class ReceiptItemResponse(ReceiptItemBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+
 class ReceiptResponse(ReceiptBase):
     model_config = ConfigDict(from_attributes=True)
 
@@ -54,6 +58,3 @@ class ReceiptResponse(ReceiptBase):
 
     items: list[ReceiptItemResponse]
 
-class ReceiptItemResponse(ReceiptItemBase):
-    model_config = ConfigDict(from_attributes=True)
-    id: int

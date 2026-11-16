@@ -12,11 +12,13 @@ from sqlalchemy.orm import Session
 import models
 from database import Base, engine, get_db
 
-from ocr import ocr 
+from ocr import ocr, OCRError
 
 from schemas import ReceiptResponse, ReceiptCreate, UserCreate, UserResponse, ReceiptItemCreate
 
 from typing import Annotated
+
+from text_utils import clean_description
 
 import json
 import requests
@@ -42,24 +44,29 @@ def home(request: Request, db: Annotated[Session, Depends(get_db)]):
 
 @app.post("/upload")
 def upload_receipt(request: Request, db:Annotated[Session, Depends(get_db)], receipt_image: UploadFile = File(...)):
-    r = ocr(request, receipt_image )
-
-    raw = json.load(open("receipt.json", encoding="utf-8"))
-    src = raw["receipts"][0]
+    try:
+        r = ocr(receipt_image )
+    except OCRError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     new = {
-    "retailer": src.get("merchant_name"),
-    "purchase_date": src.get("date"),
-    "currency": src.get("currency"),
-    "total": src.get("total"),
+    "retailer": r.get("merchant_name"),
+    "purchase_date": r.get("date"),
+    "currency": r.get("currency"),
+    "total": r.get("total"),
     }
 
-    new["items"] = [{"description": i.get("description"), "amount": i.get("amount")} for i in src.get("items", [])]
+    new["items"] = [{"description": i.get("description"), "amount": i.get("amount")} for i in r.get("items", [])]
 
-    json.dump(new, open("pantree_receipt.json", "w", encoding="utf-8"), indent=4)
+    # json.dump(new, open("pantree_receipt.json", "w", encoding="utf-8"), indent=4)
 
-    # src = r.json()["receipts"][0]
-
-    data = ReceiptCreate(retailer=src.get("merchant_name"), currency=src.get("currency"), total=src.get("total"), purchase_data=src.get("date"), items=[ReceiptItemCreate(description=i["description"], amount=i["amount"]) for i in src.get("items", [])])
+    data = ReceiptCreate( 
+        retailer=r.get("merchant_name"),
+        currency=r.get("currency"), total=r.get("total"),
+        purchase_date=r.get("date"),
+        items=[ReceiptItemCreate(description=clean_description(i["description"]),
+        raw_description=i["description"],
+        amount=i["amount"]) 
+        for i in r.get("items",[])])
     receipt = save_receipt(db, data)
     db.add(receipt)
     db.commit()
@@ -72,9 +79,6 @@ def save_receipt(db: Annotated[Session, Depends(get_db)], data: ReceiptCreate):
     receipt.items = [models.ReceiptItem(**item.model_dump()) for item in data.items]
 
     return receipt
-
-
-    
 
 @app.get("/receipts/{receipt_id}", include_in_schema=False)
 def receipt_page(request: Request ,receipt_id: int, db: Annotated[Session, Depends(get_db)]):
@@ -108,6 +112,7 @@ def create_user(user: UserCreate, db: Annotated[Session, Depends(get_db)]):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    return new_user
 
 @app.get("/api/users/{user_id}", response_model=UserResponse)
 def get_user(user_id: int, db: Annotated[Session, Depends(get_db)]):
@@ -170,11 +175,6 @@ def general_http_exception_handler(request: Request, exception: StarletteHTTPExc
         },
         status_code=exception.status_code,
     )
-
-@app.exception_handler(RequestValidationError)
-async def show_422(request, exc):
-    print(exc.errors())
-    return JSONResponse({"detail": exc.errors()}, status_code=422)
 
 @app.exception_handler(RequestValidationError)
 def validation_exception_handler(request: Request, exception: RequestValidationError):
