@@ -34,6 +34,7 @@ class Receipt(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     retailer: Mapped[str] = mapped_column(String, unique=False, nullable=True)
+    raw_retailer: Mapped[str] = mapped_column(String, unique=False, nullable=True)
     purchase_date: Mapped[date | None] = mapped_column(Date, unique=False, nullable=True)
     user_id: Mapped[int | None] = mapped_column(ForeignKey(User.id), nullable=True, index=True)
     currency: Mapped[str] = mapped_column(String, unique=False)
@@ -47,5 +48,6 @@ class ReceiptItem(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     receipt_id: Mapped[int] = mapped_column(ForeignKey("receipts.id"), nullable=False, index=True)
     description: Mapped[str] = mapped_column(String(200), nullable=False)
+    raw_description: Mapped[str | None] = mapped_column(String(200), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     receipt: Mapped[Receipt] = relationship(back_populates="items")

@@ -18,7 +18,7 @@ from schemas import ReceiptResponse, ReceiptCreate, UserCreate, UserResponse, Re
 
 from typing import Annotated
 
-from text_utils import clean_description
+from text_utils import clean_description, clean_title
 
 import json
 import requests
@@ -60,7 +60,8 @@ def upload_receipt(request: Request, db:Annotated[Session, Depends(get_db)], rec
     # json.dump(new, open("pantree_receipt.json", "w", encoding="utf-8"), indent=4)
 
     data = ReceiptCreate( 
-        retailer=r.get("merchant_name"),
+        retailer=clean_title(r.get("merchant_name")),
+        raw_retailer=r.get("merchant_name"),
         currency=r.get("currency"), total=r.get("total"),
         purchase_date=r.get("date"),
         items=[ReceiptItemCreate(description=clean_description(i["description"]),
@@ -178,6 +179,7 @@ def general_http_exception_handler(request: Request, exception: StarletteHTTPExc
 
 @app.exception_handler(RequestValidationError)
 def validation_exception_handler(request: Request, exception: RequestValidationError):
+    print(exception.errors())
     if request.url.path.startswith("/api"):
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

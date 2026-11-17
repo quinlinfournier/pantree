@@ -7,4 +7,5 @@ CHOC=Chocolate
 ALM=Almond
 CHED=Chedder
 BF=Black Forest
+EWHOLESALE=Costco
 

@@ -26,12 +26,14 @@ class UserCreate(UserBase):
     pass
 
 class ReceiptItemCreate(ReceiptItemBase):
-    pass
+    raw_description: str | None = None
 
 
 class ReceiptCreate(ReceiptBase):
     user_id: int | None = None
+    raw_retailer: str | None = None
     items: list[ReceiptItemCreate]
+
 
 
 # Response
@@ -52,6 +54,7 @@ class ReceiptResponse(ReceiptBase):
 
     id: int
     retailer: str
+    raw_retailer : str | None = None
     purchase_date: date | None = None
     currency: str
     total: Decimal
